@@ -30,6 +30,7 @@ export default async function main() {
   const customReleaseRules = core.getInput('custom_release_rules');
   const shouldFetchAllTags = core.getInput('fetch_all_tags');
   const commitSha = core.getInput('commit_sha');
+  const customBranchName = core.getInput('branch_name');
 
   let mappedReleaseRules;
   if (customReleaseRules) {
@@ -49,15 +50,27 @@ export default async function main() {
     return;
   }
 
-  const currentBranch = getBranchFromRef(GITHUB_REF);
+  const currentBranch = customBranchName || getBranchFromRef(GITHUB_REF);
+  if (!currentBranch) {
+    core.setFailed('Missing branch_name or GITHUB_REF.');
+    return;
+  }
+
   const isReleaseBranch = releaseBranches
     .split(',')
-    .some((branch) => currentBranch.match(branch));
+    .some((branch: any) => currentBranch.match(branch));
+
+  core.info('isReleaseBranch: ' + isReleaseBranch);
+
   const isPreReleaseBranch = preReleaseBranches
     .split(',')
-    .some((branch) => currentBranch.match(branch));
-  const isPullRequest = isPr(GITHUB_REF);
-  const isPrerelease = !isReleaseBranch && !isPullRequest && isPreReleaseBranch;
+    .some((branch: any) => currentBranch.match(branch));
+  core.info('isPreReleaseBranch: ' + isPreReleaseBranch);
+
+  const isPullRequest = isPr(currentBranch);
+  const isPrerelease = !isReleaseBranch && isPreReleaseBranch;
+
+  core.info('isPrerelease: ' + isPrerelease);
 
   // Sanitize identifier according to
   // https://semver.org/#backusnaur-form-grammar-for-valid-semver-versions
